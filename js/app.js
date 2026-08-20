@@ -195,6 +195,7 @@ class CashFlowApp {
       dashboard: 'Financial Dashboard',
       income: 'Income Records',
       expenses: 'Expense Tracker',
+      savings: 'Savings Tracker',
       payables: 'Accounts Payable',
       receivables: 'Accounts Receivable',
       settings: 'Settings & Cloud Sync'
@@ -218,6 +219,9 @@ class CashFlowApp {
         break;
       case 'expenses':
         this.renderTransactionView(content, 'expenses');
+        break;
+      case 'savings':
+        this.renderSavingsView(content);
         break;
       case 'payables':
         this.renderDebtView(content, 'payables');
@@ -288,6 +292,15 @@ class CashFlowApp {
           </div>
           <div class="stat-value text-receivable">${this.formatMoney(stats.totalReceivables)}</div>
           <div class="stat-footer">${stats.receivableCount} incoming claim(s)</div>
+        </div>
+
+        <div class="stat-card savings-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Savings</span>
+            <div class="stat-icon" style="color: var(--savings);">💰</div>
+          </div>
+          <div class="stat-value text-savings">${this.formatMoney(stats.totalSavings)}</div>
+          <div class="stat-footer">${stats.savingsCount} savings transaction(s)</div>
         </div>
       </div>
 
@@ -589,7 +602,167 @@ class CashFlowApp {
     }).join('');
   }
 
-  // 4. Settings & Google Sheets Web App Config View
+  // 4. Savings View (deposits / withdrawals ledger)
+  renderSavingsView(container) {
+    const stats = store.getFinancialSummary();
+    const positive = stats.totalSavings >= 0;
+
+    container.innerHTML = `
+      <div class="metrics-grid">
+        <div class="stat-card savings-card">
+          <div class="stat-header">
+            <span class="stat-title">Current Savings</span>
+            <div class="stat-icon" style="color: var(--savings);">💰</div>
+          </div>
+          <div class="stat-value text-savings">${this.formatMoney(stats.totalSavings)}</div>
+          <div class="stat-footer">${positive ? 'On track to your goals' : 'Savings shortfall'}</div>
+        </div>
+
+        <div class="stat-card income-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Deposited</span>
+            <div class="stat-icon" style="color: var(--income);">📥</div>
+          </div>
+          <div class="stat-value text-income">${this.formatMoney(stats.totalDeposits)}</div>
+          <div class="stat-footer">${stats.savingsCount} total transaction(s)</div>
+        </div>
+
+        <div class="stat-card expense-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Withdrawn</span>
+            <div class="stat-icon" style="color: var(--expense);">📤</div>
+          </div>
+          <div class="stat-value text-expense">${this.formatMoney(stats.totalWithdrawals)}</div>
+          <div class="stat-footer">Money pulled out</div>
+        </div>
+      </div>
+
+      <!-- Savings Balance Trend -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">Savings Balance Trend (6-Month)</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="savingsChartCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div>
+            <h3>Savings Ledger</h3>
+            <p class="text-muted" style="font-size: 0.82rem;">Track money set aside and withdrawn</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="app.openSavingsModal('deposit')">
+              <span>+</span> Deposit
+            </button>
+            <button class="btn btn-primary" onclick="app.openSavingsModal('withdrawal')">
+              <span>−</span> Withdraw
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div class="filter-toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="savingsSearchInput" placeholder="Search description, notes..." oninput="app.handleSavingsSearch(this.value)">
+          </div>
+          <input type="date" class="filter-select filter-date" value="${this.filters.dateFrom}" onchange="app.handleSavingsDateFilter('from', this.value)" title="From date">
+          <input type="date" class="filter-select filter-date" value="${this.filters.dateTo}" onchange="app.handleSavingsDateFilter('to', this.value)" title="To date">
+        </div>
+
+        <!-- List Container -->
+        <div id="savingsListContainer" class="transaction-list">
+          ${this.renderSavingsItemsHTML()}
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      charts.renderSavingsChart();
+    }, 50);
+  }
+
+  renderSavingsItemsHTML() {
+    let items = store.getItems('savings');
+
+    if (this.filters.search) {
+      const q = this.filters.search.toLowerCase();
+      items = items.filter(x => (x.description || '').toLowerCase().includes(q) || (x.notes || '').toLowerCase().includes(q));
+    }
+    if (this.filters.dateFrom) {
+      items = items.filter(x => (x.date || '') >= this.filters.dateFrom);
+    }
+    if (this.filters.dateTo) {
+      items = items.filter(x => (x.date || '') <= this.filters.dateTo);
+    }
+
+    items = [...items].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+    if (items.length === 0) {
+      return `
+        <div class="empty-state">
+          <div class="empty-icon">💰</div>
+          <div class="empty-title">No savings activity yet</div>
+          <p class="empty-desc">Use "Deposit" or "Withdraw" to start building your savings ledger.</p>
+        </div>
+      `;
+    }
+
+    return items.map(item => {
+      const isDeposit = item.type === 'deposit';
+      return `
+        <div class="tx-card" id="card-${item.id}">
+          <div class="tx-left">
+            <div class="tx-icon-box ${isDeposit ? 'tx-icon-savings' : 'tx-icon-expense'}">
+              ${isDeposit ? '📥' : '📤'}
+            </div>
+            <div class="tx-info">
+              <span class="tx-title">${this.escapeHTML(item.description)}</span>
+              <div class="tx-meta">
+                <span>🗓️ ${item.date || 'N/A'}</span>
+                <span>•</span>
+                <span class="badge ${isDeposit ? 'badge-savings' : 'badge-expense'}">${isDeposit ? 'Deposit' : 'Withdrawal'}</span>
+                ${item.category ? `<span>• <span class="badge badge-payable">${this.escapeHTML(item.category)}</span></span>` : ''}
+                ${item.notes ? `<span>• 📝 ${this.escapeHTML(item.notes)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="tx-right">
+            <div class="tx-amount ${isDeposit ? 'text-income' : 'text-expense'}">
+              ${isDeposit ? '+' : '-'}${this.formatMoney(item.amount)}
+            </div>
+            <div class="tx-actions">
+              <button class="tx-action-btn" onclick="app.openSavingsModal('${item.type || 'deposit'}', '${item.id}')">Edit</button>
+              <button class="tx-action-btn btn-delete" onclick="app.confirmDelete('savings', '${item.id}')">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  handleSavingsSearch(val) {
+    this.filters.search = val;
+    const container = document.getElementById('savingsListContainer');
+    if (container) container.innerHTML = this.renderSavingsItemsHTML();
+  }
+
+  handleSavingsDateFilter(edge, val) {
+    if (edge === 'from') {
+      this.filters.dateFrom = val;
+    } else {
+      this.filters.dateTo = val;
+    }
+    const container = document.getElementById('savingsListContainer');
+    if (container) container.innerHTML = this.renderSavingsItemsHTML();
+  }
+
+  // 5. Settings & Google Sheets Web App Config View
   renderSettingsView(container) {
     const currentGasUrl = CONFIG.GOOGLE_APPS_SCRIPT_URL;
 
@@ -856,6 +1029,74 @@ class CashFlowApp {
     this.renderModal(modalHTML);
   }
 
+  openSavingsModal(mode = 'deposit', itemId = null) {
+    const isDeposit = mode === 'deposit';
+    const isEdit = !!itemId;
+    const title = (isEdit ? 'Edit ' : 'New ') + (isDeposit ? 'Deposit' : 'Withdrawal');
+    const categories = CONFIG.CATEGORIES.savings;
+
+    let item = {
+      date: new Date().toISOString().split('T')[0],
+      description: '',
+      category: categories[0],
+      amount: '',
+      notes: ''
+    };
+
+    if (isEdit) {
+      const found = store.getItems('savings').find(x => x.id === itemId);
+      if (found) item = { ...found };
+    }
+
+    const modalHTML = `
+      <div class="modal-backdrop" id="appModal">
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3 class="modal-title">${title}</h3>
+            <button class="btn-icon" onclick="app.closeModal()">✕</button>
+          </div>
+          <form onsubmit="app.handleSavingsSubmit(event, '${isDeposit ? 'deposit' : 'withdrawal'}', '${itemId || ''}')">
+            <div class="modal-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Date *</label>
+                  <input type="date" name="date" class="form-control" value="${item.date}" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Amount (${CONFIG.CURRENCY_SYMBOL}) *</label>
+                  <input type="number" step="0.01" min="0" name="amount" class="form-control font-mono" placeholder="0.00" value="${item.amount}" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <input type="text" name="description" class="form-control" placeholder="e.g. Monthly Auto-Save, Emergency Expense..." value="${this.escapeHTML(item.description)}" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Savings Purpose</label>
+                <select name="category" class="form-control">
+                  ${categories.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Notes (Optional)</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Additional details...">${this.escapeHTML(item.notes || '')}</textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="app.closeModal()">Cancel</button>
+              <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Add Record'}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    this.renderModal(modalHTML);
+  }
+
   renderModal(html) {
     if (this._closeTimer) {
       clearTimeout(this._closeTimer);
@@ -946,6 +1187,30 @@ class CashFlowApp {
     this.refreshCurrentView();
   }
 
+  async handleSavingsSubmit(event, mode, itemId) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const payload = {
+      date: formData.get('date'),
+      description: formData.get('description'),
+      category: formData.get('category'),
+      type: mode,
+      amount: Math.abs(parseFloat(formData.get('amount')) || 0),
+      notes: formData.get('notes')
+    };
+
+    if (itemId) {
+      await store.updateItem('savings', itemId, payload);
+      this.showToast('Savings record updated!', 'success');
+    } else {
+      await store.addItem('savings', payload);
+      this.showToast(mode === 'deposit' ? 'Deposit recorded!' : 'Withdrawal recorded!', 'success');
+    }
+
+    this.closeModal();
+    this.refreshCurrentView();
+  }
+
   async confirmDelete(type, id) {
     if (confirm(`Are you sure you want to delete this ${type.slice(0, -1)} entry?`)) {
       await store.deleteItem(type, id);
@@ -981,6 +1246,14 @@ class CashFlowApp {
                 <div style="text-align: left;">
                   <div style="font-weight: 700; color: var(--expense);">Record Expense</div>
                   <small class="text-muted">Food, bills, fuel, shopping</small>
+                </div>
+              </button>
+
+              <button class="btn btn-secondary" style="justify-content: flex-start; gap: 14px;" onclick="app.closeModal(); app.openSavingsModal('deposit')">
+                <span style="font-size: 1.3rem;">💰</span>
+                <div style="text-align: left;">
+                  <div style="font-weight: 700; color: var(--savings);">Add to Savings</div>
+                  <small class="text-muted">Deposit into your savings</small>
                 </div>
               </button>
 
@@ -1073,6 +1346,7 @@ class CashFlowApp {
       expenses: store.getItems('expenses'),
       payables: store.getItems('payables'),
       receivables: store.getItems('receivables'),
+      savings: store.getItems('savings'),
       exported_at: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1093,7 +1367,7 @@ class CashFlowApp {
             <button class="btn-icon" onclick="app.closeModal()">✕</button>
           </div>
           <div class="modal-body">
-            <p style="margin-bottom: 8px;">This will <strong>permanently delete all records</strong> (income, expenses, payables, receivables).</p>
+            <p style="margin-bottom: 8px;">This will <strong>permanently delete all records</strong> (income, expenses, payables, receivables, savings).</p>
             <p class="text-muted" style="font-size: 0.85rem;">The app will start fresh and empty. This action cannot be undone.</p>
           </div>
           <div class="modal-footer">
@@ -1108,7 +1382,7 @@ class CashFlowApp {
 
   doClearAll() {
     this.closeModal();
-    const types = ['income', 'expenses', 'payables', 'receivables'];
+    const types = ['income', 'expenses', 'payables', 'receivables', 'savings'];
     types.forEach(type => store.saveItems(type, []));
     this.showToast('All data cleared.', 'success', '🧹');
     this.refreshCurrentView();

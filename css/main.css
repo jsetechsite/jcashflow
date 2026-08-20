@@ -32,6 +32,11 @@
   --receivable-border: rgba(14, 165, 233, 0.3);
   --receivable-glow: rgba(14, 165, 233, 0.25);
 
+  --savings: #14b8a6;
+  --savings-bg: rgba(20, 184, 166, 0.12);
+  --savings-border: rgba(20, 184, 166, 0.3);
+  --savings-glow: rgba(20, 184, 166, 0.25);
+
   /* Status Colors */
   --status-paid: #10b981;
   --status-partial: #f59e0b;

@@ -8,7 +8,7 @@ const CONFIG = {
 
   CURRENCY_SYMBOL: '₱',
   CURRENCY_CODE: 'PHP',
-  APP_VERSION: '1.4.0',
+  APP_VERSION: '1.5.0',
 
   CATEGORIES: {
     income: [
@@ -19,6 +19,13 @@ const CONFIG = {
       'Rental Income',
       'Gifts / Bonus',
       'Other Income'
+    ],
+    savings: [
+      'Emergency Fund',
+      'Future Goals',
+      'Investments',
+      'Sinking Fund',
+      'Other Savings'
     ],
     expenses: [
       'Food & Dining',
@@ -66,6 +73,7 @@ const CONFIG = {
     EXPENSES: 'cashflow_expenses_v1',
     PAYABLES: 'cashflow_payables_v1',
     RECEIVABLES: 'cashflow_receivables_v1',
+    SAVINGS: 'cashflow_savings_v1',
     SETTINGS: 'cashflow_settings_v1',
     SESSION: 'cashflow_session_v1'
   }

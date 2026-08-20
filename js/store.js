@@ -56,6 +56,15 @@ class CashFlowStore {
       ];
       localStorage.setItem(CONFIG.STORAGE_KEYS.RECEIVABLES, JSON.stringify(sampleReceivables));
     }
+
+    if (force || !localStorage.getItem(CONFIG.STORAGE_KEYS.SAVINGS)) {
+      const sampleSavings = [
+        { id: 'SAV-501', date: pastDate(20), description: 'Monthly Auto-Save', type: 'deposit', amount: 10000, category: 'Emergency Fund', notes: 'Automatic transfer from payroll' },
+        { id: 'SAV-502', date: pastDate(9), description: 'Freelance Windfall Set Aside', type: 'deposit', amount: 15000, category: 'Future Goals', notes: '50% of consulting fee' },
+        { id: 'SAV-503', date: pastDate(3), description: 'Emergency Vet Bill', type: 'withdrawal', amount: 4500, category: 'Emergency Fund', notes: 'Unexpected pet care' }
+      ];
+      localStorage.setItem(CONFIG.STORAGE_KEYS.SAVINGS, JSON.stringify(sampleSavings));
+    }
   }
 
   // Get items by collection type
@@ -138,6 +147,7 @@ class CashFlowStore {
     const expenseList = this.getItems('expenses');
     const payableList = this.getItems('payables');
     const receivableList = this.getItems('receivables');
+    const savingsList = this.getItems('savings');
 
     const totalIncome = incomeList.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
     const totalExpenses = expenseList.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
@@ -153,16 +163,25 @@ class CashFlowStore {
       return acc + (remaining > 0 ? remaining : 0);
     }, 0);
 
+    const totalDeposits = savingsList.reduce((acc, curr) =>
+      acc + (curr.type === 'withdrawal' ? 0 : (Number(curr.amount) || 0)), 0);
+    const totalWithdrawals = savingsList.reduce((acc, curr) =>
+      acc + (curr.type === 'withdrawal' ? (Number(curr.amount) || 0) : 0), 0);
+
     return {
       totalIncome,
       totalExpenses,
       netCashflow,
       totalPayables,
       totalReceivables,
+      totalSavings: totalDeposits - totalWithdrawals,
+      totalDeposits,
+      totalWithdrawals,
       incomeCount: incomeList.length,
       expenseCount: expenseList.length,
       payableCount: payableList.length,
-      receivableCount: receivableList.length
+      receivableCount: receivableList.length,
+      savingsCount: savingsList.length
     };
   }
 
@@ -231,6 +250,7 @@ class CashFlowStore {
         if (data.expenses) this.saveItems('expenses', data.expenses);
         if (data.payables) this.saveItems('payables', data.payables);
         if (data.receivables) this.saveItems('receivables', data.receivables);
+        if (data.savings) this.saveItems('savings', data.savings);
         return true;
       }
     } catch (err) {
