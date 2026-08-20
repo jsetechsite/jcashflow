@@ -74,7 +74,8 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .stat-card:nth-child(5) {
+  .stat-card:nth-child(5),
+  .stat-card:nth-child(6) {
     grid-column: span 2;
   }
 

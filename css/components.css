@@ -47,6 +47,7 @@
 .stat-card.expense-card { --card-accent: var(--expense); }
 .stat-card.payable-card { --card-accent: var(--payable); }
 .stat-card.receivable-card { --card-accent: var(--receivable); }
+.stat-card.savings-card { --card-accent: var(--savings); }
 .stat-card.net-card { --card-accent: var(--primary-light); }
 
 .stat-header {
@@ -195,6 +196,7 @@
 .tx-icon-expense { background: var(--expense-bg); color: var(--expense); border: 1px solid var(--expense-border); }
 .tx-icon-payable { background: var(--payable-bg); color: var(--payable); border: 1px solid var(--payable-border); }
 .tx-icon-receivable { background: var(--receivable-bg); color: var(--receivable); border: 1px solid var(--receivable-border); }
+.tx-icon-savings { background: var(--savings-bg); color: var(--savings); border: 1px solid var(--savings-border); }
 
 .tx-info {
   min-width: 0;
@@ -277,6 +279,7 @@
 .badge-expense { background: var(--expense-bg); color: var(--expense); border: 1px solid var(--expense-border); }
 .badge-payable { background: var(--payable-bg); color: var(--payable); border: 1px solid var(--payable-border); }
 .badge-receivable { background: var(--receivable-bg); color: var(--receivable); border: 1px solid var(--receivable-border); }
+.badge-savings { background: var(--savings-bg); color: var(--savings); border: 1px solid var(--savings-border); }
 
 .badge-paid { background: rgba(16, 185, 129, 0.15); color: #10b981; }
 .badge-partial { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
@@ -517,8 +520,8 @@
   z-index: 2000;
   background: var(--bg-app);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start;
   padding: 20px;
   overflow-y: auto;
 }
@@ -530,11 +533,102 @@
 .login-card {
   width: 100%;
   max-width: 380px;
+  margin: auto;
   background: var(--bg-surface-1);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);
   padding: 32px 28px;
   box-shadow: var(--shadow-lg);
+}
+
+.login-card-wide {
+  max-width: 520px;
+}
+
+.login-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--bg-glass-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 22px;
+}
+
+.login-tab {
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-tab.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+}
+
+.setup-intro {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--bg-glass-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.setup-steps {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.setup-steps li::marker {
+  color: var(--primary-light);
+  font-weight: 800;
+}
+
+.setup-steps code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-glass-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.setup-steps .btn {
+  margin-top: 6px;
+}
+
+.setup-status {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  min-height: 18px;
+}
+
+.setup-lock-hint {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  margin: 10px 0 6px;
+}
+
+.setup-locked {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .login-brand {

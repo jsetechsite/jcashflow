@@ -101,6 +101,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Utility: remove from layout flow entirely (used for tab panes, overlays, etc.) */
+.hidden {
+  display: none !important;
+}
+
 html, body {
   width: 100%;
   min-height: 100%;
@@ -183,6 +188,7 @@ h1, h2, h3, h4, h5, h6 {
 .text-expense { color: var(--expense); }
 .text-payable { color: var(--payable); }
 .text-receivable { color: var(--receivable); }
+.text-savings { color: var(--savings); }
 .text-muted { color: var(--text-muted); }
 .text-subtle { color: var(--text-subtle); }
 .font-mono { font-family: var(--font-mono); }

@@ -14,6 +14,7 @@ class CashFlowApp {
       dateTo: ''
     };
     this.session = store.getSession();
+    this._setupConnected = false;
     this.init();
   }
 
@@ -29,8 +30,9 @@ class CashFlowApp {
       this.refreshCurrentView();
     });
 
-    // Login gate: block the app until signed in when cloud is configured
-    if (this.isLoginRequired() && !this.session) {
+    // Login gate: a session is required on first load (even before a cloud
+    // backend is configured) so new users register via the login screen.
+    if (!this.session) {
       this.showLoginScreen();
       this.updateCloudStatus();
       return;
@@ -46,37 +48,199 @@ class CashFlowApp {
     return !!CONFIG.GOOGLE_APPS_SCRIPT_URL;
   }
 
-  // Full-screen login gate
-  showLoginScreen() {
+  // Full-screen login gate (mode: 'login' or 'register')
+  showLoginScreen(mode = 'login') {
     const login = document.getElementById('loginScreen');
     if (!login) return;
+    const savedUrl = CONFIG.GOOGLE_APPS_SCRIPT_URL || '';
     login.innerHTML = `
-      <div class="login-card">
+      <div class="login-card login-card-wide">
         <div class="login-brand">
           <div class="app-logo-badge">💎</div>
           <div class="app-brand-title">CashFlow</div>
-          <div class="app-brand-subtitle">Sign in to continue</div>
+          <div class="app-brand-subtitle">${mode === 'register' ? 'Set up your private cloud & create your account' : 'Sign in to continue'}</div>
         </div>
-        <form onsubmit="app.handleLogin(event)">
-          <div class="form-group">
-            <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-control" placeholder="Your username" required autocomplete="username">
+
+        <div class="login-tabs">
+          <button type="button" class="login-tab ${mode !== 'register' ? 'active' : ''}" data-tab="login" onclick="app.switchLoginTab('login')">Login</button>
+          <button type="button" class="login-tab ${mode === 'register' ? 'active' : ''}" data-tab="register" onclick="app.switchLoginTab('register')">Register</button>
+        </div>
+
+        <!-- Sign In Pane -->
+        <div id="loginPane" class="${mode === 'register' ? 'hidden' : ''}">
+          <form onsubmit="app.handleLogin(event)">
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input type="text" name="username" class="form-control" placeholder="Your username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+          </form>
+          ${CONFIG.GOOGLE_APPS_SCRIPT_URL ? '' : `
+            <div class="setup-intro" style="margin-top: 14px; margin-bottom: 0;">
+              No backend connected yet — use the <strong>Register</strong> tab to set up your free Google backend.
+            </div>`}
+          <p class="text-muted" style="font-size: 0.78rem; text-align: center; margin-top: 14px;">
+            Credentials are verified against your Google Sheet.
+          </p>
+        </div>
+
+        <!-- Register / Setup Pane -->
+        <div id="registerPane" class="${mode === 'register' ? '' : 'hidden'}">
+          <div class="setup-intro">
+            <strong>New here?</strong> CashFlow stores your data in your own private Google Sheet. Set up your free backend, then create your login — about 5 minutes.
           </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
-          </div>
-          <button type="submit" class="btn btn-primary btn-block">Sign In</button>
-        </form>
-        <p class="text-muted" style="font-size: 0.78rem; text-align: center; margin-top: 14px;">
-          Credentials are verified against your Google Sheet.
-        </p>
+
+          <ol class="setup-steps">
+            <li>
+              <div>Download your <code>Code.gs</code> file (it already contains everything you need):</div>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="app.downloadAppScript()">⬇️ Download Code.gs</button>
+            </li>
+            <li>Create a <strong>Google Sheet</strong>, open <strong>Extensions → Apps Script</strong>, replace the editor contents with the downloaded <code>Code.gs</code>, save, then run the <strong>setupSheets</strong> function (authorize when prompted).</li>
+            <li>Click <strong>Deploy → New deployment → Web app</strong> — Execute as <em>Me</em>, Who has access <em>Anyone</em>. Copy the <code>/exec</code> URL.</li>
+            <li>Paste the URL below and click <strong>Test Connection</strong>. Once it passes, create your account.</li>
+          </ol>
+
+          <form id="setupForm" onsubmit="app.testSetupConnection(event)">
+            <div class="form-group">
+              <label class="form-label">Google Apps Script Web App URL</label>
+              <input type="url" id="setupGasUrlInput" class="form-control font-mono" placeholder="https://script.google.com/macros/s/AKfy.../exec" value="${this.escapeHTML(savedUrl)}" required>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-block" id="setupTestBtn">Test Connection</button>
+            <div id="setupStatus" class="setup-status"></div>
+          </form>
+
+          <div id="registerLockHint" class="setup-lock-hint">🔒 Registration unlocks after a successful connection test above.</div>
+          <form id="registerForm" class="setup-locked" onsubmit="app.handleRegister(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" name="reg_username" class="form-control" placeholder="at least 3 characters" minlength="3" required autocomplete="username">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" name="reg_password" class="form-control" placeholder="at least 4 characters" minlength="4" required autocomplete="new-password">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" name="reg_confirm" class="form-control" placeholder="retype password" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="registerSubmitBtn">Create Account & Sign In</button>
+            <p class="text-muted" style="font-size: 0.75rem; text-align: center; margin-top: 10px;">
+              Passwords are stored as salted SHA-256 hashes on your own sheet — never plaintext.
+            </p>
+          </form>
+        </div>
       </div>
     `;
     login.classList.remove('hidden');
     document.body.classList.add('login-active');
-    const first = login.querySelector('input');
+    const first = login.querySelector(mode === 'register' ? '#setupGasUrlInput' : 'input');
     if (first) setTimeout(() => first.focus(), 50);
+  }
+
+  switchLoginTab(tab) {
+    const login = document.getElementById('loginScreen');
+    if (!login) return;
+    login.querySelectorAll('.login-tab').forEach(t => {
+      t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+    });
+    const loginPane = document.getElementById('loginPane');
+    const registerPane = document.getElementById('registerPane');
+    if (loginPane) loginPane.classList.toggle('hidden', tab !== 'login');
+    if (registerPane) registerPane.classList.toggle('hidden', tab !== 'register');
+  }
+
+  // Download the Apps Script backend file for the user's own deployment
+  async downloadAppScript() {
+    try {
+      const res = await fetch('./apps-script/Code.gs');
+      const text = await res.text();
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Code.gs';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Code.gs downloaded — paste it into Apps Script.', 'success', '⬇️');
+    } catch (err) {
+      console.warn('Failed to fetch Code.gs:', err);
+      this.showToast('Could not download Code.gs. Check your connection.', 'error');
+    }
+  }
+
+  // Test the setup URL; on success, persist it and unlock registration
+  async testSetupConnection(event) {
+    event.preventDefault();
+    const url = document.getElementById('setupGasUrlInput').value.trim();
+    if (!url) {
+      this.showToast('Please enter your Web App URL first', 'error');
+      return;
+    }
+    const btn = document.getElementById('setupTestBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Testing…'; }
+    const status = document.getElementById('setupStatus');
+    try {
+      const res = await fetch(`${url}?action=testConnection`);
+      const data = await res.json();
+      if (data && data.success) {
+        // Persist the URL only after a successful connection
+        CONFIG.GOOGLE_APPS_SCRIPT_URL = url;
+        localStorage.setItem('cashflow_gas_url', url);
+        this._setupConnected = true;
+        const form = document.getElementById('registerForm');
+        if (form) form.classList.remove('setup-locked');
+        const hint = document.getElementById('registerLockHint');
+        if (hint) hint.innerHTML = '<span class="text-income">✅ Connection OK — you can now create your account.</span>';
+        if (status) status.innerHTML = '<span class="text-income">✅ Connected successfully.</span>';
+        this.showToast('Google Sheets Connected Successfully!', 'success', '🚀');
+      } else {
+        this._setupConnected = false;
+        if (status) status.innerHTML = '<span style="color: var(--expense);">⚠️ Connected, but the response was unexpected.</span>';
+      }
+    } catch (err) {
+      this._setupConnected = false;
+      if (status) status.innerHTML = '<span style="color: var(--expense);">⚠️ Could not reach your Apps Script. Check the URL and that it is deployed with access: Anyone.</span>';
+      this.showToast('Could not reach Google Apps Script.', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Test Connection'; }
+    }
+  }
+
+  async handleRegister(event) {
+    event.preventDefault();
+    if (!this._setupConnected) {
+      this.showToast('Test the connection first to unlock registration.', 'error');
+      return;
+    }
+    const formData = new FormData(event.target);
+    const username = String(formData.get('reg_username') || '').trim();
+    const password = String(formData.get('reg_password') || '');
+    const confirm = String(formData.get('reg_confirm') || '');
+    if (password !== confirm) {
+      this.showToast('Passwords do not match.', 'error');
+      return;
+    }
+    const btn = event.target.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
+    const res = await store.register(username, password);
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Account & Sign In'; }
+    if (res && res.success) {
+      this.session = store.saveSession(res.username);
+      this.hideLoginScreen();
+      this.navigateTo('dashboard');
+      this.updateCloudStatus();
+      this.showToast(`Welcome, ${res.username}! Your account is ready.`, 'success', '👋');
+    } else {
+      this.showToast((res && res.error) || 'Registration failed.', 'error');
+    }
   }
 
   hideLoginScreen() {
@@ -790,6 +954,7 @@ class CashFlowApp {
             <button type="submit" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-secondary" onclick="app.testCloudConnection()">Test Connection</button>
             <button type="button" class="btn btn-secondary" onclick="app.syncFromCloudManual()">Fetch Cloud Data</button>
+            <button type="button" class="btn btn-secondary" onclick="app.showLoginScreen('register')">Set Up Cloud & Register</button>
           </div>
         </form>
       </div>
@@ -801,8 +966,8 @@ class CashFlowApp {
         <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; color: var(--text-muted);">
           <div>• Storage Mode: <strong>${currentGasUrl ? 'Google Sheets & Local Hybrid' : 'Local Browser Cache (Offline-first)'}</strong></div>
           <div>• PWA Version: <strong>v${CONFIG.APP_VERSION || '1.4.0'} (Fast, Offline-ready)</strong></div>
-          ${this.isLoginRequired() ? `
-            <div>• Signed in as: <strong>${this.escapeHTML((this.session && this.session.username) || '—')}</strong>
+          ${this.session ? `
+            <div>• Signed in as: <strong>${this.escapeHTML(this.session.username || '—')}</strong>
               <button class="btn btn-sm btn-secondary" style="margin-left: 8px;" onclick="app.logout()">Logout</button>
             </div>` : ''}
           <div style="margin-top: 10px;">

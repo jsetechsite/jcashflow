@@ -205,6 +205,23 @@ class CashFlowStore {
     }
   }
 
+  // POST { action: 'register', username, password } to the Apps Script backend
+  // Creates the account on the caller's own Users sheet.
+  async register(username, password) {
+    if (!CONFIG.GOOGLE_APPS_SCRIPT_URL) return { success: false, error: 'Cloud sync is not configured.' };
+    try {
+      const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'register', username, password })
+      });
+      return await response.json();
+    } catch (err) {
+      console.warn('Registration request failed:', err);
+      return { success: false, error: 'Could not reach the registration server.' };
+    }
+  }
+
   getSession() {
     try {
       return JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEYS.SESSION)) || null;
@@ -230,7 +247,7 @@ class CashFlowStore {
       const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action, type, ...payload })
+        body: JSON.stringify({ action, collection: type, ...payload })
       });
       return await response.json();
     } catch (err) {

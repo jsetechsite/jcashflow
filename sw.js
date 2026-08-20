@@ -3,7 +3,7 @@
  * Provides offline-first caching for application shell and static assets.
  */
 
-const CACHE_NAME = 'cashflow-v1.5.0';
+const CACHE_NAME = 'cashflow-v1.7.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -18,6 +18,7 @@ const ASSETS_TO_CACHE = [
   './js/pwa.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './apps-script/Code.gs',
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
   'https://unpkg.com/htmx.org@2.0.4'
