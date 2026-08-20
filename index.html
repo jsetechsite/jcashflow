@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CashFlow">
+  <meta name="description" content="Personal & Business Cash Flow Management PWA with Google Sheets storage">
+
+  <title>CashFlow — Smart Financial Tracker</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="./css/main.css?v=4">
+  <link rel="stylesheet" href="./css/components.css?v=4">
+  <link rel="stylesheet" href="./css/responsive.css?v=4">
+
+  <!-- HTMX & Chart.js CDNs -->
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- App Main Wrapper -->
+  <div class="app-wrapper">
+
+    <!-- Desktop Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo-badge">💎</div>
+        <div>
+          <div class="app-brand-title">CashFlow</div>
+          <div class="app-brand-subtitle">Pro Tracker</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="#dashboard" class="nav-link active" data-nav="dashboard">
+          <span class="icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section-label">Cash Flow</div>
+        <a href="#income" class="nav-link" data-nav="income">
+          <span class="icon" style="color: var(--income);">📥</span>
+          <span>Income</span>
+        </a>
+        <a href="#expenses" class="nav-link" data-nav="expenses">
+          <span class="icon" style="color: var(--expense);">📤</span>
+          <span>Expenses</span>
+        </a>
+
+        <div class="nav-section-label">Obligations & Claims</div>
+        <a href="#payables" class="nav-link" data-nav="payables">
+          <span class="icon" style="color: var(--payable);">⏳</span>
+          <span>Payables</span>
+        </a>
+        <a href="#receivables" class="nav-link" data-nav="receivables">
+          <span class="icon" style="color: var(--receivable);">🎯</span>
+          <span>Receivables</span>
+        </a>
+
+        <div class="nav-section-label">System</div>
+        <a href="#settings" class="nav-link" data-nav="settings">
+          <span class="icon">⚙️</span>
+          <span>Settings & Cloud</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="cloud-status">
+          <span class="status-dot" id="cloudStatusDot"></span>
+          <span id="cloudStatusText">Local Offline Mode</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Shell -->
+    <div class="app-main">
+
+      <!-- Sticky Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
+          <h1 class="page-headline" id="pageHeadline">Financial Dashboard</h1>
+        </div>
+
+        <div class="header-right">
+          <!-- Install PWA Button (Visible when installable) -->
+          <button class="btn btn-sm btn-secondary" id="pwaInstallBtn" style="display: none;">
+            <span>⬇️</span> Install App
+          </button>
+          <button class="btn-icon" onclick="app.navigateTo('settings')" title="Google Cloud Settings">
+            ⚙️
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Content Injection Target -->
+      <main id="mainContentArea" class="content-body">
+        <!-- Rendered by js/app.js & HTMX -->
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="#dashboard" class="mobile-nav-item active" data-nav="dashboard">
+      <span class="icon">📊</span>
+      <span>Home</span>
+    </a>
+    <a href="#income" class="mobile-nav-item" data-nav="income">
+      <span class="icon" style="color: var(--income);">📥</span>
+      <span>Income</span>
+    </a>
+    <a href="#expenses" class="mobile-nav-item" data-nav="expenses">
+      <span class="icon" style="color: var(--expense);">📤</span>
+      <span>Expense</span>
+    </a>
+    <a href="#payables" class="mobile-nav-item" data-nav="payables">
+      <span class="icon" style="color: var(--payable);">⏳</span>
+      <span>Payable</span>
+    </a>
+    <a href="#receivables" class="mobile-nav-item" data-nav="receivables">
+      <span class="icon" style="color: var(--receivable);">🎯</span>
+      <span>Receive</span>
+    </a>
+  </nav>
+
+  <!-- Floating Action Button for Quick Record -->
+  <button class="fab-btn" id="fabActionBtn" title="Quick Record" aria-label="Quick Record">
+    ＋
+  </button>
+
+  <!-- Modal Dialog Container -->
+  <div id="modalContainer"></div>
+
+  <!-- Login Gate (shown when cloud login is required) -->
+  <div id="loginScreen" class="login-screen hidden"></div>
+
+  <!-- Toast Notification Center -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic Scripts -->
+  <script src="./js/config.js?v=4"></script>
+  <script src="./js/store.js?v=4"></script>
+  <script src="./js/charts.js?v=4"></script>
+  <script src="./js/app.js?v=4"></script>
+  <script src="./js/pwa.js?v=4"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+/* ==========================================================================
+   CashFlow PWA — Responsive Styles & Media Queries
+   ========================================================================== */
+
+/* Mobile & Small Tablets (< 900px) */
+@media (max-width: 900px) {
+  :root {
+    --sidebar-width: 0px;
+    --header-height: 58px;
+  }
+
+  .app-sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .app-main {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: calc(var(--bottom-nav-height) + 20px);
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-body {
+    padding: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 1.35rem;
+  }
+
+  .stat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Extra Small Screens (< 480px) */
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-card:nth-child(5) {
+    grid-column: span 2;
+  }
+
+  .tx-card {
+    padding: 12px;
+  }
+
+  .tx-left {
+    gap: 10px;
+  }
+
+  .tx-icon-box {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  .tx-title {
+    font-size: 0.88rem;
+  }
+
+  .tx-amount {
+    font-size: 0.95rem;
+  }
+
+  .filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .modal-container {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    position: fixed;
+    bottom: 0;
+    max-height: 85vh;
+  }
+}
+
+/* iOS Safe Areas */
+@supports (padding: max(0px)) {
+  .mobile-bottom-nav {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  }
+  .app-header {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}
