@@ -156,5 +156,5 @@ node test/static-server.js   # serves the app locally at http://127.0.0.1:4173
 | Changes don't appear after deploying an update | Hard refresh (Ctrl/Cmd+F5); if that fails, DevTools → **Application → Service Workers → Unregister**, then reload. |
 | **Test Connection** fails / CORS error | Re-deploy the Apps Script with **Who has access: Anyone**; confirm the URL is `.../exec` (not `.../dev`). |
 | `setupSheets` authorization error | Run it once from the Apps Script toolbar and approve the Google permissions. |
-| Savings records appear under Income after syncing | You're on an old backend. Re-deploy **v1.7.1**'s `Code.gs` (it routes savings to the `Savings` sheet), then delete any savings-shaped rows (ids like `SAV-…`) from the **Income** tab of your spreadsheet. |
+| Data (expenses, payables, savings, receivables) appears under Income after syncing | You're on an old backend. Re-deploy **v1.7.1**'s `Code.gs` (it routes each collection to its own sheet), then delete any misrouted rows (ids like `EXP-…`, `SAV-…`, `PAY-…`, `REC-…`) from the **Income** tab of your spreadsheet. |
 | PWA "Install" button missing | Site must be served over **HTTPS** and loaded more than once; install is available on mobile via the browser menu. |

@@ -1,0 +1,14 @@
+{
+  "name": "cashflow-app",
+  "version": "1.7.1",
+  "private": true,
+  "description": "CashFlow — offline-first PWA for tracking income, expenses, payables, and receivables.",
+  "scripts": {
+    "test": "npm run test:verify && npm run test:e2e",
+    "test:verify": "node test/reset-verify.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
