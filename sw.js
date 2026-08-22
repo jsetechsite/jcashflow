@@ -3,7 +3,7 @@
  * Provides offline-first caching for application shell and static assets.
  */
 
-const CACHE_NAME = 'cashflow-v1.7.1';
+const CACHE_NAME = 'cashflow-v1.7.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

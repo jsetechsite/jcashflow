@@ -8,7 +8,7 @@ const CONFIG = {
 
   CURRENCY_SYMBOL: '₱',
   CURRENCY_CODE: 'PHP',
-  APP_VERSION: '1.7.1',
+  APP_VERSION: '1.7.3',
 
   CATEGORIES: {
     income: [

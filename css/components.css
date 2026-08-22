@@ -697,6 +697,7 @@
 .toast.toast-success { border-left: 4px solid var(--income); }
 .toast.toast-error { border-left: 4px solid var(--expense); }
 .toast.toast-info { border-left: 4px solid var(--primary); }
+.toast.toast-warning { border-left: 4px solid #f59e0b; }
 
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(40px); }

@@ -1,6 +1,6 @@
 {
   "name": "cashflow-app",
-  "version": "1.7.1",
+  "version": "1.7.3",
   "private": true,
   "description": "CashFlow — offline-first PWA for tracking income, expenses, payables, and receivables.",
   "scripts": {

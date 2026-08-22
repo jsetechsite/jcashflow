@@ -195,12 +195,26 @@ class CashFlowApp {
         CONFIG.GOOGLE_APPS_SCRIPT_URL = url;
         localStorage.setItem('cashflow_gas_url', url);
         this._setupConnected = true;
+        this._backendCapabilities = null;
+        try {
+          const capRes = await fetch(`${url}?action=checkCapabilities`);
+          const capData = await capRes.json();
+          if (capData && capData.success && capData.features) {
+            this._backendCapabilities = capData;
+          }
+        } catch (_) { /* old backend — no capabilities */ }
         const form = document.getElementById('registerForm');
         if (form) form.classList.remove('setup-locked');
         const hint = document.getElementById('registerLockHint');
-        if (hint) hint.innerHTML = '<span class="text-income">✅ Connection OK — you can now create your account.</span>';
-        if (status) status.innerHTML = '<span class="text-income">✅ Connected successfully.</span>';
-        this.showToast('Google Sheets Connected Successfully!', 'success', '🚀');
+        if (!this._backendCapabilities) {
+          if (hint) hint.innerHTML = '<span style="color: var(--warning);">⚠️ Backend is outdated — savings and other records may be misrouted to Income. Download the latest Code.gs from the Register tab, replace your Apps Script, and re-test.</span>';
+          if (status) status.innerHTML = '<span style="color: var(--warning);">⚠️ Connected, but the backend is outdated.</span>';
+          this.showToast('Backend is outdated — please redeploy the latest Code.gs.', 'warning', '⚠️');
+        } else {
+          if (hint) hint.innerHTML = '<span class="text-income">✅ Connection OK — you can now create your account.</span>';
+          if (status) status.innerHTML = '<span class="text-income">✅ Connected successfully.</span>';
+          this.showToast('Google Sheets Connected Successfully!', 'success', '🚀');
+        }
       } else {
         this._setupConnected = false;
         if (status) status.innerHTML = '<span style="color: var(--expense);">⚠️ Connected, but the response was unexpected.</span>';
@@ -239,7 +253,11 @@ class CashFlowApp {
       this.updateCloudStatus();
       this.showToast(`Welcome, ${res.username}! Your account is ready.`, 'success', '👋');
     } else {
-      this.showToast((res && res.error) || 'Registration failed.', 'error');
+      const raw = (res && res.error) || 'Registration failed.';
+      const msg = /unknown.*action/i.test(raw)
+        ? 'Backend does not support registration. Redeploy the latest Code.gs from the Register tab, then try again.'
+        : raw;
+      this.showToast(msg, 'error');
     }
   }
 
@@ -275,7 +293,11 @@ class CashFlowApp {
       this.updateCloudStatus();
       this.showToast(`Welcome back, ${res.username}!`, 'success', '👋');
     } else {
-      this.showToast((res && res.error) || 'Invalid username or password.', 'error');
+      const raw = (res && res.error) || 'Invalid username or password.';
+      const msg = /unknown.*action/i.test(raw)
+        ? 'Backend does not support login. Redeploy the latest Code.gs from the Register tab, then try again.'
+        : raw;
+      this.showToast(msg, 'error');
     }
   }
 
